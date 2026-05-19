@@ -297,7 +297,7 @@
         {
           "id": "T006",
           "title": "Creare seed iniziale",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Crea seed per admin usando ADMIN_EMAIL.",
@@ -321,7 +321,7 @@
         {
           "id": "T007",
           "title": "Configurare Auth.js con Google OAuth",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Installa Auth.js/NextAuth.",

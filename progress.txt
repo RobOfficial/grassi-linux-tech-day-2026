@@ -430,3 +430,20 @@ Aggiornare questa sezione a ogni iterazione.
   - progress.txt
   - backlog.json
 - **Note di esecuzione**: Verificare la compilazione con `npm run build` prima di procedere.
+
+### Iterazione Ralph Loop — 19/05/2026, 17:33:56
+- **Task Eseguito**: [T006] Creare seed iniziale
+- **Stato**: Completato automaticamente dall'agente.
+- **File Modificati/Creati**:
+  - prisma/seed.ts
+  - backlog.json
+  - progress.txt
+- **Note di esecuzione**: Verificare la compilazione con `npm run build` prima di procedere.
+
+### Iterazione Ralph Loop — 19/05/2026, 17:34:25
+- **Task Eseguito**: [T007] Configurare Auth.js con Google OAuth
+- **Stato**: Completato automaticamente dall'agente.
+- **File Modificati/Creati**:
+  - app/api/auth/[...nextauth]/route.ts
+  - progress.txt
+- **Note di esecuzione**: Verificare la compilazione con `npm run build` prima di procedere.
