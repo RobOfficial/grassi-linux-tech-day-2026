@@ -203,7 +203,7 @@
         {
           "id": "T001",
           "title": "Inizializzare progetto Next.js App Router",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Crea progetto Next.js con TypeScript.",
@@ -221,7 +221,7 @@
         {
           "id": "T002",
           "title": "Configurare Docker Compose",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Crea Dockerfile multi-stage per Next.js.",

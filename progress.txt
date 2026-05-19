@@ -389,3 +389,24 @@ Aggiornare questa sezione a ogni iterazione.
 - Stato: da iniziare.
 - Prossimo task: T001.
 - Note: rispettare backlog.json come fonte primaria dei task.
+
+### Iterazione Ralph Loop — 19/05/2026, 17:16:46
+- **Task Eseguito**: [T001] Inizializzare progetto Next.js App Router
+- **Stato**: Completato automaticamente dall'agente.
+- **File Modificati/Creati**:
+  - tailwind.config.js
+  - next.config.js
+  - app/layout.tsx
+  - app/globals.css
+  - progress.txt
+  - backlog.json
+- **Note di esecuzione**: Verificare la compilazione con `npm run build` prima di procedere.
+
+### Iterazione Ralph Loop — 19/05/2026, 17:17:41
+- **Task Eseguito**: [T002] Configurare Docker Compose
+- **Stato**: Completato automaticamente dall'agente.
+- **File Modificati/Creati**:
+  - Dockerfile
+  - docker-compose.yml
+  - progress.txt
+- **Note di esecuzione**: Verificare la compilazione con `npm run build` prima di procedere.
