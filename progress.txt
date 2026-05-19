@@ -1,0 +1,391 @@
+# Grassi Tech Quest — progress.txt
+
+## Stato progetto
+Progetto non ancora inizializzato.
+
+## Obiettivo
+Creare un'applicazione web Next.js per la Tech Quest del Grassi Linux Tech Day 2026.
+
+La Tech Quest trasforma la visita degli stand in un gioco: gli studenti accedono con email scolastica, scansionano il QR code dello stand, rispondono a domande a risposta multipla e guadagnano punti nella classifica individuale.
+
+## Scope
+Solo Tech Quest.
+
+Non includere:
+- programma completo evento;
+- mappa interattiva;
+- gestione speech;
+- gestione maker;
+- anti-cheat avanzato;
+- funzionamento offline.
+
+## URL e deploy
+Dominio previsto:
+https://techday.itisgrassi.it/quest
+
+L'app deve funzionare sotto base path:
+/quest
+
+Deploy:
+- VPS con Docker;
+- Caddy già esistente fuori dal progetto;
+- SQLite persistente su volume/bind mount;
+- docker-compose.yml deve avviare solo l'app Next.js e gestire il volume dati.
+
+## Stack deciso
+- Next.js App Router
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Auth.js / NextAuth
+- Google OAuth
+- Prisma
+- SQLite
+- Route Handlers come API interne/BFF
+- Docker Compose
+
+## Variabili .env richieste
+AUTH_SECRET=
+AUTH_URL=https://techday.itisgrassi.it/quest
+AUTH_TRUST_HOST=true
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+ALLOWED_EMAIL_DOMAIN=itisgrassi.edu.it
+ADMIN_EMAIL=
+DATABASE_URL=file:./data/techquest.db
+NEXT_PUBLIC_APP_URL=https://techday.itisgrassi.it/quest
+NEXT_PUBLIC_BASE_PATH=/quest
+
+## Ruoli
+### STUDENT
+- Accede con Google OAuth.
+- Deve avere email con dominio @itisgrassi.edu.it.
+- Alla prima registrazione inserisce nome, cognome e classe.
+- Può scansionare QR code stand.
+- Può completare ogni stand al massimo una volta.
+- Può vedere punteggio, badge, classifica e statistiche.
+
+### ADMIN
+- Esiste un solo account admin, configurato tramite ADMIN_EMAIL.
+- Accede con Google OAuth.
+- Può gestire stand.
+- Può importare stand da CSV.
+- Può gestire domande e opzioni.
+- Può importare domande da CSV.
+- Può generare/scaricare/stampare QR code.
+- Può vedere utenti registrati.
+- Può correggere nome/cognome/classe degli utenti.
+- Può resettare il profilo/onboarding utente.
+- Può esportare risultati CSV.
+
+Nota: non esiste account Maker.
+
+## Regole autenticazione
+- Login solo con Google OAuth.
+- Bloccare email fuori dominio scolastico.
+- Dominio ammesso: itisgrassi.edu.it.
+- Nessuna password locale per studenti.
+- La richiesta “reset password utenti” va interpretata come reset profilo/onboarding, perché con OAuth non c'è una password locale.
+
+## Modello dati richiesto
+Entità minime:
+- User
+- Stand
+- Question
+- AnswerOption
+- Attempt
+- AnswerSubmission
+- Badge
+- UserBadge
+- Account/Session/VerificationToken se richiesti da Auth.js Prisma adapter
+
+Vincoli importanti:
+- User.email unico.
+- Stand.code unico.
+- Stand.token unico.
+- Attempt userId+standId unico.
+- UserBadge userId+badgeId unico.
+- Una domanda deve avere esattamente 4 opzioni.
+- Una domanda deve avere una sola opzione corretta.
+
+## Stand
+Ogni stand ha:
+- codice, esempio A01, B03, C02;
+- area;
+- aula/stanza;
+- titolo;
+- descrizione opzionale;
+- punteggio base configurabile;
+- stato attivo/non attivo;
+- token non indovinabile;
+- QR code generato dal token.
+
+Il QR deve puntare a:
+/quest/scan/{token}
+
+Ogni stand ha un solo QR code fisso.
+Se l'admin rigenera il token, il vecchio QR non deve più funzionare.
+
+Gli stand saranno inseriti massivamente via CSV. Non hardcodare l'elenco della mappa nel codice.
+
+## CSV stand
+Colonne richieste:
+code,area,room,title
+
+Colonne opzionali:
+description,basePoints,isActive
+
+Esempio:
+code,area,room,title,description,basePoints,isActive
+A01,A,I36,Linux Live,Demo Linux live,10,true
+
+## Domande
+Ogni stand può avere:
+- numero variabile di domande;
+- anche 0 domande;
+- pool domande gestito dall'admin.
+
+Ogni domanda:
+- appartiene a uno stand;
+- ha testo;
+- ha 4 opzioni;
+- ha una sola opzione corretta;
+- ha punteggio configurabile;
+- può essere attiva/non attiva.
+
+Per MVP: quando uno studente avvia il quiz di uno stand, usa tutte le domande attive dello stand in ordine casuale.
+Prevedere in modo semplice una futura configurazione del numero massimo di domande pescate.
+
+## CSV domande
+Colonne richieste:
+standCode,question,option1,option2,option3,option4,correctOption
+
+Colonne opzionali:
+points,isActive
+
+correctOption deve essere un numero da 1 a 4.
+
+Esempio:
+standCode,question,option1,option2,option3,option4,correctOption,points,isActive
+A01,Cos'è una distribuzione Linux?,Kernel,Sistema operativo completo,Browser,Editor,2,10,true
+
+## Regole quiz
+- Ogni studente può completare ogni stand al massimo una volta.
+- Se lo studente ha già completato lo stand, mostra riepilogo e non permettere un nuovo tentativo.
+- Se la risposta è corretta al primo colpo: assegna il 100% dei punti domanda.
+- Se la risposta è sbagliata: mostra subito che è sbagliata.
+- Dopo risposta sbagliata, lo studente può cliccare un'altra risposta.
+- Se dopo uno o più errori trova la risposta corretta: assegna solo il 20% dei punti domanda.
+- Non assegnare mai punti più volte sulla stessa domanda.
+- Quando tutte le domande sono risolte, marca il tentativo come COMPLETED.
+- Stand con 0 domande: default proposto = completamento a 0 punti. Documentare questa scelta nel codice/commenti o README.
+
+## Punteggio
+- Punti per ogni risposta corretta.
+- Ogni domanda può avere points.
+- Se points non è specificato, usare default dallo stand.
+- La classifica è individuale, non di classe.
+- La classe con più punti va comunque calcolata come statistica aggregata.
+
+## Classifica e statistiche
+Visibili a tutti.
+
+Classifica studenti:
+- posizione;
+- nome;
+- cognome;
+- classe;
+- punti totali;
+- stand completati.
+
+Dashboard monitor:
+- route suggerita: /quest/monitor;
+- mostra classifica studenti;
+- mostra statistiche globali;
+- mostra classe con più punti;
+- aggiorna ogni 30 secondi tramite polling;
+- layout leggibile sui monitor dell'Istituto.
+
+Statistiche globali:
+- totale studenti registrati;
+- totale completamenti stand;
+- totale punti assegnati;
+- stand più completato;
+- media punti per studente;
+- classe con più punti.
+
+Statistiche per stand:
+- completamenti per stand;
+- punteggio medio per stand;
+- domande più sbagliate.
+
+## Badge
+Implementare badge gamification.
+
+Badge iniziali consigliati:
+- Kernel Explorer: completa 1 stand.
+- Debugger: completa 3 stand.
+- Packet Hunter: completa 5 stand.
+- Root Master: raggiunge una soglia punti configurabile.
+- Tux Champion: raggiunge una soglia alta o top ranking.
+
+I badge devono:
+- essere seedati nel DB;
+- essere assegnati automaticamente dopo il completamento di uno stand;
+- essere mostrati nella dashboard studente;
+- evitare duplicati.
+
+## Admin panel
+Route suggerita:
+/quest/admin
+
+Sezioni:
+1. Dashboard admin
+2. Stand
+3. Import CSV
+4. Domande
+5. QR Code
+6. Utenti
+7. Esportazioni
+
+Funzioni obbligatorie:
+- CRUD stand;
+- import CSV stand;
+- CRUD domande/opzioni;
+- import CSV domande;
+- generazione QR per singolo stand;
+- pagina stampa di tutti i QR;
+- gestione utenti registrati;
+- modifica nome/cognome/classe;
+- reset onboarding/profilo utente;
+- export CSV risultati.
+
+## Esportazioni CSV
+Solo admin.
+
+CSV richiesti:
+1. classifica studenti;
+2. tentativi per stand;
+3. risposte dettagliate.
+
+Campi minimi:
+- email;
+- nome;
+- cognome;
+- classe;
+- stand code;
+- stand title;
+- score;
+- maxScore;
+- completedAt;
+- question;
+- selectedOption;
+- isCorrect;
+- scoreAwarded;
+- attemptNumber.
+
+## Privacy e log
+Salvare:
+- email;
+- nome;
+- cognome;
+- classe;
+- punteggi;
+- tentativi;
+- risposte;
+- timestamp;
+- stand visitati.
+
+Non salvare:
+- IP;
+- user-agent;
+- audit anti-cheat.
+
+## Sicurezza minima
+- Validazione server-side su tutte le route mutating.
+- Protezione CSRF secondo meccanismi Auth.js/Next.
+- Controllo ruolo admin lato server, non solo UI.
+- Non fidarsi mai del punteggio inviato dal client.
+- Calcolare punteggi sempre lato server.
+- Token QR non indovinabile.
+- Niente dati sensibili nei QR oltre al token.
+
+## UX
+Studenti:
+- mobile-first;
+- bottoni grandi;
+- progress bar quiz;
+- feedback immediato corretto/sbagliato;
+- riepilogo finale;
+- badge unlock;
+- link chiaro per tornare alla dashboard.
+
+Monitor:
+- leggibile da lontano;
+- aggiornamento automatico ogni 30 secondi;
+- nessun controllo complesso.
+
+Admin:
+- layout desktop;
+- tabelle filtrabili;
+- CSV import con errori leggibili;
+- QR stampabili.
+
+## Ordine di sviluppo consigliato
+1. Bootstrap Next.js, Tailwind, shadcn, basePath /quest.
+2. Docker Compose.
+3. Prisma + SQLite.
+4. Schema DB.
+5. Seed admin e badge.
+6. Auth.js Google OAuth.
+7. Blocco dominio scolastico.
+8. Onboarding studente.
+9. Middleware protezione rotte.
+10. Layout admin.
+11. CRUD stand.
+12. Import CSV stand.
+13. CRUD domande.
+14. Generazione QR.
+15. Dashboard studente.
+16. Scansione token.
+17. Quiz con retry penalizzato.
+18. Completamento attempt.
+19. Classifica studenti.
+20. Statistiche globali.
+21. Dashboard monitor polling 30s.
+22. Export CSV.
+23. Import CSV domande.
+24. Gestione utenti.
+25. Statistiche per stand.
+26. Badge completi.
+27. Error handling.
+28. Test manuale end-to-end.
+29. Build Docker finale.
+
+## Definition of Done
+- npm run build passa.
+- npm run typecheck passa.
+- docker compose up avvia l'app.
+- Database SQLite persistente.
+- Admin creato da ADMIN_EMAIL.
+- Login Google funzionante.
+- Email fuori dominio bloccate.
+- Studente completa onboarding.
+- Admin importa stand via CSV.
+- Admin crea/importa domande.
+- Admin genera QR code.
+- Studente scansiona QR e completa quiz.
+- Retry dopo errore assegna 20%.
+- Stesso stand non completabile due volte dallo stesso studente.
+- Classifica studenti aggiornata.
+- Dashboard monitor aggiorna ogni 30 secondi.
+- CSV risultati esportabile.
+- Nessun IP/user-agent salvato.
+
+## Log iterazioni Ralph Loop
+Aggiornare questa sezione a ogni iterazione.
+
+### Iterazione 0
+- Stato: da iniziare.
+- Prossimo task: T001.
+- Note: rispettare backlog.json come fonte primaria dei task.

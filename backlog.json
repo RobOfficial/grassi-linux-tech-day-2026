@@ -1,0 +1,871 @@
+{
+  "project": {
+    "name": "Grassi Tech Quest",
+    "description": "Applicazione web Next.js per la gamification del Grassi Linux Tech Day 2026. Gli studenti accedono con email scolastica, scansionano QR code degli stand, rispondono a quiz a risposta multipla e competono in una classifica individuale.",
+    "scope": "Solo Tech Quest",
+    "base_path": "/quest",
+    "public_url": "https://techday.itisgrassi.it/quest",
+    "stack": {
+      "frontend_backend": "Next.js App Router + TypeScript",
+      "ui": "Tailwind CSS + shadcn/ui",
+      "auth": "Auth.js / NextAuth con Google OAuth",
+      "database": "SQLite",
+      "orm": "Prisma",
+      "deployment": "Docker Compose dietro Caddy già esistente",
+      "api_pattern": "Route Handlers come API interne/BFF"
+    }
+  },
+  "hard_requirements": [
+    "L'applicazione gestisce solo la Tech Quest, non programma completo o mappa evento.",
+    "Accesso consentito solo a email del dominio @itisgrassi.edu.it.",
+    "Autenticazione con Google OAuth tramite Auth.js/NextAuth; client ID, client secret e secret in .env.",
+    "Alla prima registrazione lo studente inserisce nome, cognome e classe.",
+    "Esiste un solo account admin, configurabile da .env o seed iniziale.",
+    "L'admin gestisce stand, import massivo CSV, QR code, quiz, punteggi, utenti e reset password/registrazione utenti se necessario.",
+    "Ogni stand ha un QR code fisso con token non indovinabile.",
+    "Ogni studente può completare ogni stand al massimo una volta.",
+    "Ogni stand può avere un numero variabile di domande, anche zero.",
+    "Le domande per lo studente sono pescate casualmente dal pool dello stand.",
+    "Ogni domanda ha 4 opzioni e una sola risposta corretta.",
+    "Se lo studente sbaglia, vede subito l'errore e può cliccare un'altra risposta, ma quella domanda varrà solo il 20% dei punti.",
+    "Il punteggio per domanda/stand è configurabile dall'admin.",
+    "Ogni stand può avere un punteggio configurabile; default uniforme se non specificato.",
+    "La classifica è per singolo studente e mostra nome e cognome.",
+    "La dashboard pubblica mostra classifica studenti, statistiche globali e classe con più punti.",
+    "La dashboard pubblica si aggiorna ogni 30 secondi.",
+    "Tutti possono vedere statistiche, classifica generale e classifiche/statistiche per stand.",
+    "Non esiste ruolo Maker.",
+    "Nessun sistema anti-cheat avanzato: si accetta il rischio di condivisione QR.",
+    "Non salvare IP o user-agent per audit.",
+    "A fine evento deve essere possibile esportare i risultati in CSV.",
+    "Non è richiesto funzionamento offline.",
+    "Il deploy avviene su VPS con Docker; Caddy è già installato e gestisce il dominio."
+  ],
+  "domain_model": {
+    "User": {
+      "fields": [
+        "id",
+        "email",
+        "name",
+        "surname",
+        "className",
+        "role: STUDENT | ADMIN",
+        "image",
+        "createdAt",
+        "updatedAt",
+        "registrationCompletedAt"
+      ],
+      "notes": "Gli studenti usano Google OAuth. L'admin può essere creato via seed usando ADMIN_EMAIL in .env."
+    },
+    "Stand": {
+      "fields": [
+        "id",
+        "code",
+        "title",
+        "area",
+        "room",
+        "description",
+        "token",
+        "basePoints",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ],
+      "notes": "code può essere A01, B03, C02 ecc. Non validare unicità semantica oltre al campo code nel DB: se l'utente importa codici duplicati deve ricevere errore chiaro o usare codici corretti nel CSV."
+    },
+    "Question": {
+      "fields": [
+        "id",
+        "standId",
+        "text",
+        "points",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ],
+      "notes": "points può sovrascrivere/integrare basePoints dello stand. Per semplicità MVP: points per domanda; default = stand.basePoints."
+    },
+    "AnswerOption": {
+      "fields": [
+        "id",
+        "questionId",
+        "text",
+        "isCorrect",
+        "position"
+      ],
+      "notes": "Ogni domanda deve avere esattamente 4 opzioni e una sola corretta."
+    },
+    "Attempt": {
+      "fields": [
+        "id",
+        "userId",
+        "standId",
+        "status: IN_PROGRESS | COMPLETED",
+        "score",
+        "maxScore",
+        "startedAt",
+        "completedAt"
+      ],
+      "notes": "Vincolo unico userId+standId per impedire completamenti multipli."
+    },
+    "AnswerSubmission": {
+      "fields": [
+        "id",
+        "attemptId",
+        "questionId",
+        "selectedOptionId",
+        "isCorrect",
+        "scoreAwarded",
+        "attemptNumber",
+        "answeredAt"
+      ],
+      "notes": "Per una domanda si può avere più di una submission se la prima è sbagliata. La prima risposta corretta vale 100%, la risposta corretta dopo almeno un errore vale 20%."
+    },
+    "Badge": {
+      "fields": [
+        "id",
+        "slug",
+        "name",
+        "description",
+        "icon",
+        "conditionType",
+        "threshold",
+        "createdAt",
+        "updatedAt"
+      ],
+      "notes": "Badge esempio: Kernel Explorer, Debugger, Root Master, Tux Champion."
+    },
+    "UserBadge": {
+      "fields": [
+        "id",
+        "userId",
+        "badgeId",
+        "awardedAt"
+      ]
+    }
+  },
+  "csv_imports": {
+    "stands_csv": {
+      "required_columns": [
+        "code",
+        "area",
+        "room",
+        "title"
+      ],
+      "optional_columns": [
+        "description",
+        "basePoints",
+        "isActive"
+      ],
+      "example": "code,area,room,title,description,basePoints,isActive\nA01,A,I36,Linux Live,Demo Linux live,10,true"
+    },
+    "questions_csv": {
+      "required_columns": [
+        "standCode",
+        "question",
+        "option1",
+        "option2",
+        "option3",
+        "option4",
+        "correctOption"
+      ],
+      "optional_columns": [
+        "points",
+        "isActive"
+      ],
+      "example": "standCode,question,option1,option2,option3,option4,correctOption,points,isActive\nA01,Cos'è una distribuzione Linux?,Kernel,Sistema operativo completo,Browser,Editor,2,10,true"
+    },
+    "notes": [
+      "Gli stand saranno inseriti massivamente via CSV dall'admin.",
+      "Non codificare in modo rigido gli stand della mappa.",
+      "Non gestire manualmente i casi B05 duplicato e Linux Install Party: saranno risolti nel CSV reale."
+    ]
+  },
+  "environment_variables": {
+    "AUTH_SECRET": "secret di Auth.js",
+    "AUTH_URL": "https://techday.itisgrassi.it/quest",
+    "AUTH_TRUST_HOST": "true",
+    "GOOGLE_CLIENT_ID": "client ID Google OAuth",
+    "GOOGLE_CLIENT_SECRET": "client secret Google OAuth",
+    "ALLOWED_EMAIL_DOMAIN": "itisgrassi.edu.it",
+    "ADMIN_EMAIL": "email dell'account admin",
+    "DATABASE_URL": "file:./data/techquest.db",
+    "NEXT_PUBLIC_APP_URL": "https://techday.itisgrassi.it/quest",
+    "NEXT_PUBLIC_BASE_PATH": "/quest"
+  },
+  "epics": [
+    {
+      "id": "E01",
+      "title": "Bootstrap progetto e architettura",
+      "priority": "P0",
+      "goal": "Creare una base Next.js solida, deployabile via Docker e pronta per sviluppo iterativo.",
+      "stories": [
+        {
+          "id": "T001",
+          "title": "Inizializzare progetto Next.js App Router",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Crea progetto Next.js con TypeScript.",
+            "Configura Tailwind CSS.",
+            "Installa e configura shadcn/ui.",
+            "Imposta struttura app con basePath /quest.",
+            "Crea layout principale responsive."
+          ],
+          "acceptance_criteria": [
+            "npm run dev avvia l'app.",
+            "npm run build passa senza errori.",
+            "La home risponde sotto /quest."
+          ]
+        },
+        {
+          "id": "T002",
+          "title": "Configurare Docker Compose",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Crea Dockerfile multi-stage per Next.js.",
+            "Crea docker-compose.yml con volume persistente per SQLite.",
+            "Prevedi variabili .env.",
+            "Non installare Caddy nel compose: Caddy esiste già fuori dal progetto.",
+            "Aggiungi esempio opzionale di labels se si usa caddy-docker-proxy, ma non renderlo obbligatorio."
+          ],
+          "acceptance_criteria": [
+            "docker compose up -d avvia l'app.",
+            "Il database SQLite persiste in un volume o bind mount.",
+            "La configurazione è compatibile con reverse proxy esterno."
+          ]
+        },
+        {
+          "id": "T003",
+          "title": "Configurare qualità codice",
+          "status": "todo",
+          "priority": "P1",
+          "details": [
+            "Configura ESLint/Prettier se non già disponibili.",
+            "Aggiungi script typecheck.",
+            "Aggiungi script validate che esegue lint, typecheck e build."
+          ],
+          "acceptance_criteria": [
+            "npm run lint passa.",
+            "npm run typecheck passa.",
+            "npm run build passa."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E02",
+      "title": "Database e modello dati",
+      "priority": "P0",
+      "goal": "Implementare schema dati completo per utenti, stand, quiz, tentativi, punteggi e badge.",
+      "stories": [
+        {
+          "id": "T004",
+          "title": "Installare Prisma e configurare SQLite",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Installa Prisma e @prisma/client.",
+            "Configura provider SQLite.",
+            "Crea DATABASE_URL file:./data/techquest.db.",
+            "Aggiungi script prisma migrate dev, prisma generate, prisma studio."
+          ],
+          "acceptance_criteria": [
+            "prisma generate funziona.",
+            "prisma migrate dev crea il database.",
+            "L'app importa Prisma Client senza errori."
+          ]
+        },
+        {
+          "id": "T005",
+          "title": "Creare schema Prisma",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Modella User, Stand, Question, AnswerOption, Attempt, AnswerSubmission, Badge, UserBadge.",
+            "Aggiungi modelli richiesti da Auth.js Prisma adapter se usato: Account, Session, VerificationToken.",
+            "Aggiungi vincoli unici: User.email, Stand.code, Stand.token, Attempt.userId+standId, UserBadge.userId+badgeId.",
+            "Aggiungi enum Role e AttemptStatus."
+          ],
+          "acceptance_criteria": [
+            "Lo schema Prisma migra correttamente.",
+            "I vincoli impediscono doppio completamento dello stesso stand da parte dello stesso studente.",
+            "Le relazioni sono navigabili da Prisma Client."
+          ]
+        },
+        {
+          "id": "T006",
+          "title": "Creare seed iniziale",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Crea seed per admin usando ADMIN_EMAIL.",
+            "Crea badge iniziali.",
+            "Non inserire stand hardcoded salvo dati demo opzionali separati."
+          ],
+          "acceptance_criteria": [
+            "npm run db:seed crea o aggiorna admin.",
+            "Il seed è idempotente.",
+            "I badge base sono disponibili."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E03",
+      "title": "Autenticazione e registrazione",
+      "priority": "P0",
+      "goal": "Permettere accesso solo con email scolastica Google e completamento profilo studente.",
+      "stories": [
+        {
+          "id": "T007",
+          "title": "Configurare Auth.js con Google OAuth",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Installa Auth.js/NextAuth.",
+            "Configura Google Provider.",
+            "Usa GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, AUTH_SECRET e AUTH_URL da .env.",
+            "Proteggi accesso consentendo solo email con dominio ALLOWED_EMAIL_DOMAIN.",
+            "Configura session callback con id utente e ruolo."
+          ],
+          "acceptance_criteria": [
+            "Login Google funziona.",
+            "Email fuori dominio vengono bloccate.",
+            "La sessione contiene user.id, user.email e user.role."
+          ]
+        },
+        {
+          "id": "T008",
+          "title": "Implementare onboarding studente",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Se lo studente non ha completato registrazione, reindirizzalo a /quest/onboarding.",
+            "Form con nome, cognome e classe.",
+            "Validazione lato client e server.",
+            "Impedisci accesso alla quest finché onboarding non è completo."
+          ],
+          "acceptance_criteria": [
+            "Studente nuovo completa profilo.",
+            "Nome, cognome e classe vengono salvati.",
+            "Admin non viene obbligato a compilare classe."
+          ]
+        },
+        {
+          "id": "T009",
+          "title": "Middleware protezione rotte",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Proteggi rotte /quest/app, /quest/stand, /quest/scan e /quest/admin.",
+            "Admin-only per /quest/admin.",
+            "Rotte pubbliche: landing login, dashboard/classifica se desiderato, monitor."
+          ],
+          "acceptance_criteria": [
+            "Utenti non autenticati vengono mandati al login.",
+            "Studenti non possono accedere al pannello admin.",
+            "Admin può accedere al pannello admin."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E04",
+      "title": "Admin panel",
+      "priority": "P0",
+      "goal": "Consentire all'admin di configurare interamente la Tech Quest.",
+      "stories": [
+        {
+          "id": "T010",
+          "title": "Creare layout admin",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Sidebar o tabs: Dashboard, Stand, Import CSV, Domande, QR Code, Utenti, Esportazioni.",
+            "UI con shadcn/ui.",
+            "Mostra statistiche rapide in alto."
+          ],
+          "acceptance_criteria": [
+            "Admin naviga tra le sezioni.",
+            "Le pagine admin sono protette.",
+            "UI responsive e utilizzabile da laptop."
+          ]
+        },
+        {
+          "id": "T011",
+          "title": "CRUD stand",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Lista stand.",
+            "Creazione/modifica/eliminazione logica o disattivazione stand.",
+            "Campi: code, area, room, title, description, basePoints, isActive.",
+            "Token generato automaticamente e rigenerabile dall'admin."
+          ],
+          "acceptance_criteria": [
+            "Admin crea e modifica stand.",
+            "Il token dello stand è non indovinabile.",
+            "Rigenerare token invalida il vecchio QR."
+          ]
+        },
+        {
+          "id": "T012",
+          "title": "Import massivo stand da CSV",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Upload CSV da pannello admin.",
+            "Parsing lato server.",
+            "Validazione colonne richieste.",
+            "Preview errori prima di confermare o import transazionale con report dettagliato.",
+            "Upsert su code o errore esplicito se duplicato, da decidere in implementazione documentata."
+          ],
+          "acceptance_criteria": [
+            "Admin importa stand da CSV.",
+            "CSV non valido produce errori leggibili.",
+            "Import non lascia dati parziali inconsistenti."
+          ]
+        },
+        {
+          "id": "T013",
+          "title": "CRUD domande e opzioni",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Per ogni stand admin può gestire pool domande.",
+            "Ogni domanda ha testo, punti, attiva/non attiva.",
+            "Ogni domanda ha 4 opzioni, una sola corretta.",
+            "Supporta stand con 0 domande."
+          ],
+          "acceptance_criteria": [
+            "Admin crea domande valide.",
+            "Il sistema impedisce meno/più di 4 opzioni.",
+            "Il sistema impedisce zero o più di una risposta corretta."
+          ]
+        },
+        {
+          "id": "T014",
+          "title": "Import massivo domande da CSV",
+          "status": "todo",
+          "priority": "P1",
+          "details": [
+            "Upload CSV domande.",
+            "Associa domande tramite standCode.",
+            "Validazione correctOption da 1 a 4.",
+            "Report righe importate e righe scartate."
+          ],
+          "acceptance_criteria": [
+            "Admin importa domande massivamente.",
+            "Le domande sono collegate allo stand corretto.",
+            "Errori CSV sono leggibili."
+          ]
+        },
+        {
+          "id": "T015",
+          "title": "Generazione QR code",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Per ogni stand genera QR che punta a /quest/scan/{token}.",
+            "Mostra QR nel pannello admin.",
+            "Permetti download PNG singolo.",
+            "Permetti pagina stampa con tutti i QR code."
+          ],
+          "acceptance_criteria": [
+            "Ogni QR apre lo stand corretto.",
+            "I QR sono leggibili da smartphone.",
+            "Admin può stampare/scaricare i QR."
+          ]
+        },
+        {
+          "id": "T016",
+          "title": "Gestione utenti admin",
+          "status": "todo",
+          "priority": "P1",
+          "details": [
+            "Lista studenti registrati.",
+            "Filtro per classe.",
+            "Possibilità di modificare nome, cognome e classe.",
+            "Possibilità di resettare registrazione/profilo utente, cioè costringere l'utente a rifare onboarding.",
+            "Non serve gestione password perché login Google OAuth non usa password locale."
+          ],
+          "acceptance_criteria": [
+            "Admin vede utenti.",
+            "Admin può correggere classe/nome/cognome.",
+            "Admin può resettare onboarding di un utente."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E05",
+      "title": "Flusso studente e quiz",
+      "priority": "P0",
+      "goal": "Consentire allo studente di scansionare uno stand, rispondere al quiz e ottenere punti una sola volta.",
+      "stories": [
+        {
+          "id": "T017",
+          "title": "Pagina studente dashboard",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Mostra punteggio totale.",
+            "Mostra stand completati e stand disponibili.",
+            "Mostra badge ottenuti.",
+            "Link a classifica e statistiche."
+          ],
+          "acceptance_criteria": [
+            "Lo studente vede il proprio progresso.",
+            "Gli stand già completati sono chiaramente indicati.",
+            "I badge ottenuti sono visibili."
+          ]
+        },
+        {
+          "id": "T018",
+          "title": "Endpoint scansione token stand",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Route /quest/scan/[token].",
+            "Risolvi token in stand attivo.",
+            "Se token non valido mostra errore.",
+            "Se stand già completato mostra riepilogo senza permettere nuovo tentativo.",
+            "Se stand con 0 domande assegna completamento secondo regola documentata: completamento a 0 punti o punti base se configurato. Preferenza: 0 domande = completamento a 0 punti, utile per badge/visita."
+          ],
+          "acceptance_criteria": [
+            "Token valido apre quiz.",
+            "Token non valido mostra errore elegante.",
+            "Doppia scansione non crea doppio punteggio."
+          ]
+        },
+        {
+          "id": "T019",
+          "title": "Selezione casuale domande dal pool",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Quando parte un tentativo, seleziona casualmente le domande attive dello stand.",
+            "Per MVP puoi usare tutte le domande attive in ordine random.",
+            "Prevedi configurazione futura questionCount se serve."
+          ],
+          "acceptance_criteria": [
+            "Due studenti possono vedere ordine diverso.",
+            "Le domande inattive non vengono proposte.",
+            "La selezione del tentativo resta stabile mentre risponde."
+          ]
+        },
+        {
+          "id": "T020",
+          "title": "Implementare risposta immediata e retry penalizzato",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Lo studente seleziona una risposta.",
+            "Il sistema comunica subito se è corretta o sbagliata.",
+            "Se sbagliata, lo studente può scegliere un'altra opzione.",
+            "Se la prima risposta corretta è al primo tentativo, assegna 100% dei punti domanda.",
+            "Se la risposta corretta arriva dopo almeno un errore, assegna 20% dei punti domanda.",
+            "Evita di assegnare punti più volte sulla stessa domanda."
+          ],
+          "acceptance_criteria": [
+            "Feedback immediato funzionante.",
+            "Retry dopo errore funzionante.",
+            "Punteggio 100% o 20% calcolato correttamente.",
+            "Nessuna domanda può dare punti due volte."
+          ]
+        },
+        {
+          "id": "T021",
+          "title": "Completamento tentativo",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Quando tutte le domande sono risolte o stand ha 0 domande, marca Attempt come COMPLETED.",
+            "Calcola score e maxScore.",
+            "Aggiorna badge se condizioni soddisfatte.",
+            "Mostra pagina riepilogo."
+          ],
+          "acceptance_criteria": [
+            "Tentativo completato viene salvato.",
+            "Punteggio totale utente aggiornato nelle classifiche.",
+            "Badge assegnati correttamente."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E06",
+      "title": "Classifiche, statistiche e monitor",
+      "priority": "P0",
+      "goal": "Rendere pubblica e leggibile la competizione durante l'evento.",
+      "stories": [
+        {
+          "id": "T022",
+          "title": "Classifica studenti",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Mostra posizione, nome, cognome, classe, punti totali, stand completati.",
+            "Ordinamento per punti desc, poi stand completati desc, poi completamento più recente.",
+            "Visibile a tutti gli autenticati e nella dashboard monitor."
+          ],
+          "acceptance_criteria": [
+            "Classifica aggiornata correttamente.",
+            "Nome e cognome sono visibili.",
+            "Tie-break documentato e coerente."
+          ]
+        },
+        {
+          "id": "T023",
+          "title": "Statistiche globali",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Totale studenti registrati.",
+            "Totale completamenti stand.",
+            "Totale punti assegnati.",
+            "Stand più completato.",
+            "Media punti per studente.",
+            "Classe con più punti."
+          ],
+          "acceptance_criteria": [
+            "Statistiche coerenti con i dati.",
+            "Classe con più punti calcolata aggregando i punteggi individuali.",
+            "Le statistiche sono visibili nella dashboard monitor."
+          ]
+        },
+        {
+          "id": "T024",
+          "title": "Statistiche per stand",
+          "status": "todo",
+          "priority": "P1",
+          "details": [
+            "Per ogni stand mostra completamenti, punteggio medio, domande più sbagliate.",
+            "Visibile a tutti o almeno agli autenticati."
+          ],
+          "acceptance_criteria": [
+            "Pagina statistiche stand navigabile.",
+            "Admin e studenti possono vedere andamento per stand.",
+            "Le domande più sbagliate sono calcolate correttamente."
+          ]
+        },
+        {
+          "id": "T025",
+          "title": "Dashboard monitor auto-refresh",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Pagina /quest/monitor ottimizzata per schermi.",
+            "Mostra classifica studenti, statistiche globali e classe con più punti.",
+            "Aggiorna i dati ogni 30 secondi tramite polling.",
+            "Design leggibile da lontano."
+          ],
+          "acceptance_criteria": [
+            "La pagina si aggiorna senza refresh manuale.",
+            "Polling ogni 30 secondi.",
+            "Layout adatto a monitor istituto."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E07",
+      "title": "Badge e gamification",
+      "priority": "P1",
+      "goal": "Aggiungere riconoscimenti visivi per aumentare engagement.",
+      "stories": [
+        {
+          "id": "T026",
+          "title": "Definire badge iniziali",
+          "status": "todo",
+          "priority": "P1",
+          "details": [
+            "Kernel Explorer: completa 1 stand.",
+            "Debugger: completa 3 stand.",
+            "Packet Hunter: completa 5 stand.",
+            "Root Master: supera una soglia punti configurabile.",
+            "Tux Champion: entra nella top 10 provvisoria almeno una volta o raggiunge soglia alta."
+          ],
+          "acceptance_criteria": [
+            "Badge seedati nel DB.",
+            "Badge mostrati nel profilo studente.",
+            "Badge assegnati automaticamente."
+          ]
+        },
+        {
+          "id": "T027",
+          "title": "Assegnazione badge",
+          "status": "todo",
+          "priority": "P1",
+          "details": [
+            "Dopo ogni completamento valuta condizioni badge.",
+            "Evita duplicati UserBadge.",
+            "Mostra notifica/badge unlock nel riepilogo tentativo."
+          ],
+          "acceptance_criteria": [
+            "Badge assegnati in modo idempotente.",
+            "Lo studente vede i nuovi badge ottenuti.",
+            "La logica non rallenta il completamento quiz."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E08",
+      "title": "Esportazione e fine evento",
+      "priority": "P0",
+      "goal": "Permettere archiviazione dei risultati e spegnimento controllato.",
+      "stories": [
+        {
+          "id": "T028",
+          "title": "Esportazione risultati CSV",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "CSV classifica studenti.",
+            "CSV tentativi per stand.",
+            "CSV risposte con dettaglio domanda/opzione/punteggio.",
+            "Accesso solo admin."
+          ],
+          "acceptance_criteria": [
+            "Admin scarica CSV risultati.",
+            "CSV apribile in Excel/LibreOffice.",
+            "I campi includono almeno email, nome, cognome, classe, stand, score, timestamp."
+          ]
+        },
+        {
+          "id": "T029",
+          "title": "Pagina stato evento",
+          "status": "todo",
+          "priority": "P2",
+          "details": [
+            "Permetti all'admin di mettere la quest in modalità attiva/chiusa.",
+            "Quando chiusa, gli studenti vedono messaggio finale e classifica.",
+            "Non è obbligatorio per MVP se il deploy viene spento manualmente."
+          ],
+          "acceptance_criteria": [
+            "Admin può chiudere la quest.",
+            "Nuovi tentativi bloccati quando chiusa.",
+            "Classifica resta consultabile."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E09",
+      "title": "UX, error handling e robustezza",
+      "priority": "P1",
+      "goal": "Rendere l'app usabile durante un evento reale.",
+      "stories": [
+        {
+          "id": "T030",
+          "title": "Gestire errori utente comuni",
+          "status": "todo",
+          "priority": "P1",
+          "details": [
+            "QR non valido.",
+            "Stand disattivato.",
+            "Utente non autorizzato.",
+            "Profilo incompleto.",
+            "Tentativo già completato.",
+            "Nessuna domanda disponibile."
+          ],
+          "acceptance_criteria": [
+            "Ogni errore ha messaggio chiaro.",
+            "L'utente ha sempre un link per tornare alla dashboard.",
+            "Nessun errore tecnico grezzo viene mostrato allo studente."
+          ]
+        },
+        {
+          "id": "T031",
+          "title": "Responsive mobile per scansione",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Le pagine quiz devono essere ottimizzate per smartphone.",
+            "Bottoni grandi.",
+            "Feedback immediato leggibile.",
+            "Progress bar domande."
+          ],
+          "acceptance_criteria": [
+            "Quiz utilizzabile da smartphone.",
+            "Non servono zoom o scroll eccessivi.",
+            "Stato domanda sempre chiaro."
+          ]
+        },
+        {
+          "id": "T032",
+          "title": "Test manuale end-to-end",
+          "status": "todo",
+          "priority": "P0",
+          "details": [
+            "Scenario admin: seed admin, login, import CSV stand, crea domande, genera QR.",
+            "Scenario studente: login, onboarding, scansione QR, quiz con risposta corretta, quiz con errore e retry, completamento.",
+            "Scenario monitor: classifica aggiornata dopo completamento.",
+            "Scenario export: scarica CSV."
+          ],
+          "acceptance_criteria": [
+            "Tutti gli scenari passano.",
+            "Bug bloccanti annotati in progress.txt.",
+            "Build Docker verificata."
+          ]
+        }
+      ]
+    }
+  ],
+  "implementation_order": [
+    "T001",
+    "T002",
+    "T004",
+    "T005",
+    "T006",
+    "T007",
+    "T008",
+    "T009",
+    "T010",
+    "T011",
+    "T012",
+    "T013",
+    "T015",
+    "T017",
+    "T018",
+    "T019",
+    "T020",
+    "T021",
+    "T022",
+    "T023",
+    "T025",
+    "T028",
+    "T014",
+    "T016",
+    "T024",
+    "T026",
+    "T027",
+    "T030",
+    "T031",
+    "T032",
+    "T003",
+    "T029"
+  ],
+  "definition_of_done": [
+    "Il codice compila con npm run build.",
+    "Il typecheck passa.",
+    "Il database viene creato/migrato da zero.",
+    "L'admin può configurare stand e quiz senza modificare codice.",
+    "Uno studente con dominio scolastico può autenticarsi, completare onboarding, scansionare QR e completare uno stand.",
+    "Lo stesso studente non può completare due volte lo stesso stand.",
+    "La penalità 20% dopo risposta sbagliata è implementata correttamente.",
+    "La classifica individuale mostra nome, cognome, classe e punti.",
+    "La dashboard monitor aggiorna ogni 30 secondi.",
+    "L'admin può esportare risultati CSV.",
+    "Docker Compose avvia l'app in modo riproducibile."
+  ],
+  "open_decisions_for_developer": [
+    "Stabilire se /quest/monitor è pubblica senza login o richiede login. Requisito: tutti possono vedere statistiche/classifica; preferenza: pubblica per monitor.",
+    "Per stand con 0 domande: default proposto completamento a 0 punti. Se si vuole attribuire punti base anche senza domande, modificare chiaramente.",
+    "Per import CSV stand duplicati: decidere tra upsert e blocco. Preferenza: upsert con preview/report.",
+    "Per reset password utenti: con OAuth non esiste password locale. Implementare invece reset profilo/onboarding o logout forzato se necessario."
+  ]
+}
