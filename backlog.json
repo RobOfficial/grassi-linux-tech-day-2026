@@ -280,7 +280,7 @@
         {
           "id": "T005",
           "title": "Creare schema Prisma",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Modella User, Stand, Question, AnswerOption, Attempt, AnswerSubmission, Badge, UserBadge.",

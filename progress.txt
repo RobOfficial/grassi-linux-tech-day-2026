@@ -421,3 +421,12 @@ Aggiornare questa sezione a ogni iterazione.
   - backlog.json
   - progress.txt
 - **Note di esecuzione**: Verificare la compilazione con `npm run build` prima di procedere.
+
+### Iterazione Ralph Loop — 19/05/2026, 17:21:21
+- **Task Eseguito**: [T005] Creare schema Prisma
+- **Stato**: Completato automaticamente dall'agente.
+- **File Modificati/Creati**:
+  - prisma/schema.prisma
+  - progress.txt
+  - backlog.json
+- **Note di esecuzione**: Verificare la compilazione con `npm run build` prima di procedere.

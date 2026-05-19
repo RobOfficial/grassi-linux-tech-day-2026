@@ -1,3 +1,5 @@
+// schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,12 +9,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum AttemptStatus {
+  PENDING
+  COMPLETED
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
-  name      String?
-  surname   String?
-  class     String?
+  name      String
+  surname   String
+  class     String
+  role      Role     @default(STUDENT)
   attempts   Attempt[]
   badges    UserBadge[]
 }
@@ -25,39 +38,97 @@ model Stand {
   title       String
   description String?
   basePoints  Int
-  isActive    Boolean
+  isActive    Boolean  @default(true)
   token       String   @unique
-  qrCode      String
-  questions    Question[]
+  qrCode      String   @default("")
+  questions   Question[]
 }
 
 model Question {
-  id             Int      @id @default(autoincrement())
+  id             Int            @id @default(autoincrement())
+  stand          Stand          @relation(fields: [standId], references: [id])
   standId        Int
   text           String
   options        AnswerOption[]
   correctOption  Int
   points         Int?
-  isActive       Boolean
+  isActive       Boolean         @default(true)
 }
 
 model AnswerOption {
   id        Int    @id @default(autoincrement())
+  question  Question @relation(fields: [questionId], references: [id])
   questionId Int
   text      String
 }
 
 model Attempt {
   id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
   userId    Int
+  stand     Stand    @relation(fields: [standId], references: [id])
   standId   Int
-  completed Boolean
-  score     Int
-  timestamp DateTime @default(now())
+  status    AttemptStatus @default(PENDING)
+  score     Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, standId])
+}
+
+model AnswerSubmission {
+  id             Int      @id @default(autoincrement())
+  attempt        Attempt  @relation(fields: [attemptId], references: [id])
+  attemptId      Int
+  question       Question @relation(fields: [questionId], references: [id])
+  questionId     Int
+  selectedOption Int
+  isCorrect      Boolean
+  pointsAwarded  Int
+}
+
+model Badge {
+  id        Int      @id @default(autoincrement())
+  name      String
+  criteria  String
+  users     UserBadge[]
 }
 
 model UserBadge {
-  id      Int   @id @default(autoincrement())
-  userId  Int
-  badgeId Int
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+  badgeId   Int
+
+  @@unique([userId, badgeId])
+}
+
+// Models required by Auth.js Prisma adapter
+model Account {
+  id                Int      @id @default(autoincrement())
+  user              User     @relation(fields: [userId], references: [id])
+  userId           Int
+  provider         String
+  providerAccountId String
+  type              String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  sessionToken String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  userId      Int
+  expires      DateTime
+}
+
+model VerificationToken {
+  id           Int      @id @default(autoincrement())
+  identifier   String
+  token        String   @unique
+  expires      DateTime
 }
