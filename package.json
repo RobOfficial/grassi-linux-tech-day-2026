@@ -1,25 +1,24 @@
 {
-  "name": "grassi-linux-tech-day-2026",
-  "type": "module",
-  "version": "1.0.0",
-  "description": "",
-  "main": "agent.js",
+  "name": "grassi-tech-quest",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "migrate": "prisma migrate dev",
+    "generate": "prisma generate",
+    "studio": "prisma studio"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/RobOfficial/grassi-linux-tech-day-2026.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/RobOfficial/grassi-linux-tech-day-2026/issues"
-  },
-  "homepage": "https://github.com/RobOfficial/grassi-linux-tech-day-2026#readme",
   "dependencies": {
-    "dotenv": "^17.4.2",
-    "openai": "^6.38.0"
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "prisma": "^3.0.0",
+    "@prisma/client": "^3.0.0"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "ts-node": "latest"
   }
 }

@@ -410,3 +410,14 @@ Aggiornare questa sezione a ogni iterazione.
   - docker-compose.yml
   - progress.txt
 - **Note di esecuzione**: Verificare la compilazione con `npm run build` prima di procedere.
+
+### Iterazione Ralph Loop — 19/05/2026, 17:18:51
+- **Task Eseguito**: [T004] Installare Prisma e configurare SQLite
+- **Stato**: Completato automaticamente dall'agente.
+- **File Modificati/Creati**:
+  - prisma/schema.prisma
+  - .env
+  - package.json
+  - backlog.json
+  - progress.txt
+- **Note di esecuzione**: Verificare la compilazione con `npm run build` prima di procedere.

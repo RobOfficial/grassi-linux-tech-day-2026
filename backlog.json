@@ -263,7 +263,7 @@
         {
           "id": "T004",
           "title": "Installare Prisma e configurare SQLite",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Installa Prisma e @prisma/client.",

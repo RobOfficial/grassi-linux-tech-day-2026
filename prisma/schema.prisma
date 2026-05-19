@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  surname   String?
+  class     String?
+  attempts   Attempt[]
+  badges    UserBadge[]
+}
+
+model Stand {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  area        String
+  room        String
+  title       String
+  description String?
+  basePoints  Int
+  isActive    Boolean
+  token       String   @unique
+  qrCode      String
+  questions    Question[]
+}
+
+model Question {
+  id             Int      @id @default(autoincrement())
+  standId        Int
+  text           String
+  options        AnswerOption[]
+  correctOption  Int
+  points         Int?
+  isActive       Boolean
+}
+
+model AnswerOption {
+  id        Int    @id @default(autoincrement())
+  questionId Int
+  text      String
+}
+
+model Attempt {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  standId   Int
+  completed Boolean
+  score     Int
+  timestamp DateTime @default(now())
+}
+
+model UserBadge {
+  id      Int   @id @default(autoincrement())
+  userId  Int
+  badgeId Int
+}
