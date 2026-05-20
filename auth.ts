@@ -6,8 +6,13 @@ import { Role } from "@/lib/constants";
 
 const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN || "itisgrassi.edu.it";
 const adminEmail = (process.env.ADMIN_EMAIL || "").toLowerCase();
+const nextBasePath = process.env.NEXT_PUBLIC_BASE_PATH || "/quest";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Necessario quando AUTH_URL include il basePath di Next (es. /quest):
+  // altrimenti NextAuth genera callback come /quest/callback/google invece di
+  // /quest/api/auth/callback/google e Google ridireziona a una route inesistente.
+  basePath: `${nextBasePath}/api/auth`,
   adapter: PrismaAdapter(prisma),
   session: { strategy: "database" },
   trustHost: true,
