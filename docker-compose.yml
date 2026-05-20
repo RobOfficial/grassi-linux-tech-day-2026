@@ -9,13 +9,13 @@ services:
       RUN_SEED: "1"
     volumes:
       - techquest-data:/app/data
-    ports:
-      - "127.0.0.1:3000:3000"
-    # Esempio opzionale caddy-docker-proxy labels (commentato):
-    # labels:
-    #   caddy: techday.itisgrassi.it
-    #   caddy.handle_path: /quest/*
-    #   caddy.handle_path.reverse_proxy: "{{upstreams 3000}}"
+    networks:
+      - proxy
 
 volumes:
   techquest-data:
+
+networks:
+  proxy:
+    external: true
+    name: reverse-proxy_proxy_net
