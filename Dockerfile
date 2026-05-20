@@ -3,7 +3,9 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma
-RUN npm ci 
+# npm install (non npm ci) per gestire optional platform deps musl mancanti dal lockfile
+# (es. @emnapi/runtime, lightningcss-linux-x64-musl). Il lockfile resta usato per le versioni.
+RUN npm install --no-audit --no-fund --include=optional
 
 FROM node:20-alpine AS builder
 RUN apk add --no-cache libc6-compat openssl
