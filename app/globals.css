@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 30% 6%;
+    --foreground: 140 80% 75%;
+    --card: 220 30% 9%;
+    --card-foreground: 140 60% 80%;
+    --popover: 220 30% 9%;
+    --popover-foreground: 140 60% 80%;
+    --primary: 140 80% 55%;
+    --primary-foreground: 220 30% 6%;
+    --secondary: 220 20% 16%;
+    --secondary-foreground: 140 60% 80%;
+    --muted: 220 20% 14%;
+    --muted-foreground: 140 15% 60%;
+    --accent: 180 80% 55%;
+    --accent-foreground: 220 30% 6%;
+    --destructive: 0 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 140 30% 22%;
+    --input: 220 20% 16%;
+    --ring: 140 80% 55%;
+    --radius: 0.25rem;
+  }
+  * {
+    @apply border-border;
+  }
+  html, body {
+    background:
+      radial-gradient(ellipse at top, hsl(140 60% 10% / 0.6), transparent 60%),
+      radial-gradient(ellipse at bottom, hsl(180 60% 10% / 0.4), transparent 60%),
+      hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-mono), "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+    min-height: 100vh;
+  }
+  body::before {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      0deg,
+      hsl(140 80% 50% / 0.04) 0,
+      hsl(140 80% 50% / 0.04) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    z-index: 50;
+    mix-blend-mode: overlay;
+  }
+}
+
+@layer components {
+  .terminal-box {
+    @apply rounded border border-primary/40 bg-card/60 backdrop-blur p-4 shadow-[0_0_20px_hsl(140_80%_50%/0.08)];
+  }
+  .terminal-heading::before { content: "$ "; @apply text-primary; }
+  .terminal-prompt::before { content: "› "; @apply text-accent; }
+  .glow { text-shadow: 0 0 8px hsl(140 80% 60% / 0.6); }
+  .glow-accent { text-shadow: 0 0 8px hsl(180 80% 60% / 0.6); }
+  .cursor-blink::after {
+    content: "▊";
+    @apply ml-1 animate-blink text-primary;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded border border-primary/60 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/20 hover:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded border border-accent/60 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/20 transition-colors;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded border border-destructive/60 bg-destructive/10 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/20 transition-colors;
+  }
+  .input {
+    @apply w-full rounded border border-border bg-input/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary;
+  }
+  .label {
+    @apply text-xs uppercase tracking-wide text-muted-foreground;
+  }
+  .table-tech {
+    @apply w-full text-sm border border-border;
+  }
+  .table-tech th {
+    @apply text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted/40 px-3 py-2;
+  }
+  .table-tech td {
+    @apply border-b border-border/40 px-3 py-2;
+  }
+  .badge-chip {
+    @apply inline-flex items-center gap-1 rounded border border-primary/40 bg-primary/10 px-2 py-0.5 text-xs text-primary;
+  }
+}

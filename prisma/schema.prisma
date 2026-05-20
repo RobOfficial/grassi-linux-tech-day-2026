@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Note: SQLite non supporta enum. Usiamo stringhe con costanti in lib/constants.ts:
+//  - Role: "STUDENT" | "ADMIN"
+//  - AttemptStatus: "IN_PROGRESS" | "COMPLETED"
+//  - BadgeCondition: "STANDS_COMPLETED" | "TOTAL_POINTS"
+
+model User {
+  id                        String    @id @default(cuid())
+  email                     String    @unique
+  name                      String?
+  surname                   String?
+  className                 String?
+  role                      String    @default("STUDENT")
+  image                     String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  registrationCompletedAt   DateTime?
+
+  accounts  Account[]
+  sessions  Session[]
+  attempts  Attempt[]
+  badges    UserBadge[]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Stand {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  title       String
+  area        String
+  room        String
+  description String?
+  token       String   @unique
+  basePoints  Int      @default(10)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questions Question[]
+  attempts  Attempt[]
+}
+
+model Question {
+  id        String   @id @default(cuid())
+  standId   String
+  text      String
+  points    Int?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stand       Stand              @relation(fields: [standId], references: [id], onDelete: Cascade)
+  options     AnswerOption[]
+  submissions AnswerSubmission[]
+}
+
+model AnswerOption {
+  id         String  @id @default(cuid())
+  questionId String
+  text       String
+  isCorrect  Boolean @default(false)
+  position   Int
+
+  question    Question           @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  submissions AnswerSubmission[]
+}
+
+model Attempt {
+  id          String    @id @default(cuid())
+  userId      String
+  standId     String
+  status      String    @default("IN_PROGRESS")
+  score       Int       @default(0)
+  maxScore    Int       @default(0)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stand       Stand              @relation(fields: [standId], references: [id], onDelete: Cascade)
+  submissions AnswerSubmission[]
+
+  @@unique([userId, standId])
+}
+
+model AnswerSubmission {
+  id               String   @id @default(cuid())
+  attemptId        String
+  questionId       String
+  selectedOptionId String
+  isCorrect        Boolean
+  scoreAwarded     Int      @default(0)
+  attemptNumber    Int      @default(1)
+  answeredAt       DateTime @default(now())
+
+  attempt        Attempt      @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption AnswerOption @relation(fields: [selectedOptionId], references: [id])
+}
+
+model Badge {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  description   String
+  icon          String
+  conditionType String
+  threshold     Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  users UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  awardedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+model EventSettings {
+  id        Int      @id @default(1)
+  isClosed  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}

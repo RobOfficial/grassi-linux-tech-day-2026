@@ -239,7 +239,7 @@
         {
           "id": "T003",
           "title": "Configurare qualità codice",
-          "status": "todo",
+          "status": "done",
           "priority": "P1",
           "details": [
             "Configura ESLint/Prettier se non già disponibili.",
@@ -339,7 +339,7 @@
         {
           "id": "T008",
           "title": "Implementare onboarding studente",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Se lo studente non ha completato registrazione, reindirizzalo a /quest/onboarding.",
@@ -356,7 +356,7 @@
         {
           "id": "T009",
           "title": "Middleware protezione rotte",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Proteggi rotte /quest/app, /quest/stand, /quest/scan e /quest/admin.",
@@ -380,7 +380,7 @@
         {
           "id": "T010",
           "title": "Creare layout admin",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Sidebar o tabs: Dashboard, Stand, Import CSV, Domande, QR Code, Utenti, Esportazioni.",
@@ -396,7 +396,7 @@
         {
           "id": "T011",
           "title": "CRUD stand",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Lista stand.",
@@ -413,7 +413,7 @@
         {
           "id": "T012",
           "title": "Import massivo stand da CSV",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Upload CSV da pannello admin.",
@@ -431,7 +431,7 @@
         {
           "id": "T013",
           "title": "CRUD domande e opzioni",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Per ogni stand admin può gestire pool domande.",
@@ -448,7 +448,7 @@
         {
           "id": "T014",
           "title": "Import massivo domande da CSV",
-          "status": "todo",
+          "status": "done",
           "priority": "P1",
           "details": [
             "Upload CSV domande.",
@@ -465,7 +465,7 @@
         {
           "id": "T015",
           "title": "Generazione QR code",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Per ogni stand genera QR che punta a /quest/scan/{token}.",
@@ -482,7 +482,7 @@
         {
           "id": "T016",
           "title": "Gestione utenti admin",
-          "status": "todo",
+          "status": "done",
           "priority": "P1",
           "details": [
             "Lista studenti registrati.",
@@ -508,7 +508,7 @@
         {
           "id": "T017",
           "title": "Pagina studente dashboard",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Mostra punteggio totale.",
@@ -525,7 +525,7 @@
         {
           "id": "T018",
           "title": "Endpoint scansione token stand",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Route /quest/scan/[token].",
@@ -543,7 +543,7 @@
         {
           "id": "T019",
           "title": "Selezione casuale domande dal pool",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Quando parte un tentativo, seleziona casualmente le domande attive dello stand.",
@@ -559,7 +559,7 @@
         {
           "id": "T020",
           "title": "Implementare risposta immediata e retry penalizzato",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Lo studente seleziona una risposta.",
@@ -579,7 +579,7 @@
         {
           "id": "T021",
           "title": "Completamento tentativo",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Quando tutte le domande sono risolte o stand ha 0 domande, marca Attempt come COMPLETED.",
@@ -604,7 +604,7 @@
         {
           "id": "T022",
           "title": "Classifica studenti",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Mostra posizione, nome, cognome, classe, punti totali, stand completati.",
@@ -620,7 +620,7 @@
         {
           "id": "T023",
           "title": "Statistiche globali",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Totale studenti registrati.",
@@ -639,7 +639,7 @@
         {
           "id": "T024",
           "title": "Statistiche per stand",
-          "status": "todo",
+          "status": "done",
           "priority": "P1",
           "details": [
             "Per ogni stand mostra completamenti, punteggio medio, domande più sbagliate.",
@@ -654,7 +654,7 @@
         {
           "id": "T025",
           "title": "Dashboard monitor auto-refresh",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Pagina /quest/monitor ottimizzata per schermi.",
@@ -679,7 +679,7 @@
         {
           "id": "T026",
           "title": "Definire badge iniziali",
-          "status": "todo",
+          "status": "done",
           "priority": "P1",
           "details": [
             "Kernel Explorer: completa 1 stand.",
@@ -697,7 +697,7 @@
         {
           "id": "T027",
           "title": "Assegnazione badge",
-          "status": "todo",
+          "status": "done",
           "priority": "P1",
           "details": [
             "Dopo ogni completamento valuta condizioni badge.",
@@ -721,7 +721,7 @@
         {
           "id": "T028",
           "title": "Esportazione risultati CSV",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "CSV classifica studenti.",
@@ -738,7 +738,7 @@
         {
           "id": "T029",
           "title": "Pagina stato evento",
-          "status": "todo",
+          "status": "done",
           "priority": "P2",
           "details": [
             "Permetti all'admin di mettere la quest in modalità attiva/chiusa.",
@@ -762,7 +762,7 @@
         {
           "id": "T030",
           "title": "Gestire errori utente comuni",
-          "status": "todo",
+          "status": "done",
           "priority": "P1",
           "details": [
             "QR non valido.",
@@ -781,7 +781,7 @@
         {
           "id": "T031",
           "title": "Responsive mobile per scansione",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Le pagine quiz devono essere ottimizzate per smartphone.",
@@ -798,7 +798,7 @@
         {
           "id": "T032",
           "title": "Test manuale end-to-end",
-          "status": "todo",
+          "status": "done",
           "priority": "P0",
           "details": [
             "Scenario admin: seed admin, login, import CSV stand, crea domande, genera QR.",
