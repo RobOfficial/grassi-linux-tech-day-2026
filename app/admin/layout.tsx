@@ -11,6 +11,7 @@ const tabs = [
   { href: "/admin/questions", label: "domande" },
   { href: "/admin/qr", label: "qr code" },
   { href: "/admin/users", label: "utenti" },
+  { href: "/admin/classes", label: "classi" },
   { href: "/admin/admins", label: "admin" },
   { href: "/admin/exports", label: "export" },
   { href: "/admin/event", label: "evento" },

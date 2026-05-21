@@ -5,8 +5,10 @@
 
 export const PENALTY_RATIO = 0.2;
 
+// 0/null/undefined → usa basePoints dello stand (più intuitivo: "non
+// specificato" o "non vale niente" → fallback al default dello stand).
 export function questionPoints(questionPoints: number | null | undefined, standBasePoints: number): number {
-  return questionPoints ?? standBasePoints;
+  return questionPoints || standBasePoints;
 }
 
 export function scoreForAnswer({

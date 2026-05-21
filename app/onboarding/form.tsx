@@ -7,14 +7,17 @@ export function OnboardingForm({
   defaultName,
   defaultSurname,
   defaultClassName,
+  classes,
 }: {
   defaultName: string;
   defaultSurname: string;
   defaultClassName: string;
+  classes: string[];
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const noClasses = classes.length === 0;
 
   return (
     <form
@@ -39,11 +42,23 @@ export function OnboardingForm({
         <input className="input mt-1" id="surname" name="surname" defaultValue={defaultSurname} required maxLength={64} />
       </div>
       <div>
-        <label className="label" htmlFor="className">classe (es. 5AI)</label>
-        <input className="input mt-1" id="className" name="className" defaultValue={defaultClassName} required maxLength={16} />
+        <label className="label" htmlFor="className">classe</label>
+        <select
+          id="className"
+          name="className"
+          className="input mt-1"
+          defaultValue={classes.includes(defaultClassName.toUpperCase()) ? defaultClassName.toUpperCase() : ""}
+          required
+          disabled={noClasses}
+        >
+          <option value="" disabled>— seleziona —</option>
+          {classes.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <button type="submit" className="btn w-full" disabled={pending}>
+      <button type="submit" className="btn w-full" disabled={pending || noClasses}>
         {pending ? "› salvataggio..." : "▶ conferma e inizia"}
       </button>
     </form>

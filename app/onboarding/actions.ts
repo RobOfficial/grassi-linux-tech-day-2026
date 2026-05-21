@@ -23,12 +23,17 @@ export async function completeOnboarding(formData: FormData) {
   });
   if (!parsed.success) return { error: "Dati non validi." };
 
+  const className = parsed.data.className.toUpperCase();
+  // Validazione: la classe deve esistere nell'elenco dell'admin.
+  const exists = await prisma.schoolClass.findUnique({ where: { name: className } });
+  if (!exists) return { error: "Classe non valida. Selezionane una dall'elenco." };
+
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
       name: parsed.data.name,
       surname: parsed.data.surname,
-      className: parsed.data.className.toUpperCase(),
+      className,
       registrationCompletedAt: new Date(),
     },
   });

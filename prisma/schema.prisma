@@ -172,3 +172,9 @@ model EventSettings {
   isClosed  Boolean  @default(false)
   updatedAt DateTime @updatedAt
 }
+
+model SchoolClass {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
