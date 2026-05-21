@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { appPath } from "@/lib/utils";
 
 type MonitorData = {
   leaderboard: { position: number; userId: string; name: string; surname: string; className: string; totalScore: number; standsCompleted: number }[];
@@ -15,7 +16,7 @@ export function MonitorBoard() {
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetch("/api/monitor", { cache: "no-store" });
+        const res = await fetch(appPath("/api/monitor"), { cache: "no-store" });
         const j = (await res.json()) as MonitorData;
         if (!cancelled) setData(j);
       } catch {}

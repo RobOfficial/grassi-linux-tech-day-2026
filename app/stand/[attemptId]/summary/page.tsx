@@ -21,8 +21,11 @@ export default async function SummaryPage({ params }: { params: Promise<{ attemp
   if (!attempt || attempt.userId !== session.user.id) notFound();
 
   const totalActive = await prisma.question.count({ where: { standId: attempt.standId, isActive: true } });
-  const maxTotal = await prisma.question.findMany({ where: { standId: attempt.standId, isActive: true }, select: { points: true } })
-    .then((rows) => rows.reduce((s, r) => s + (r.points ?? attempt.stand.basePoints), 0));
+  // Usa attempt.maxScore se presente (incrementato server-side a ogni risposta corretta).
+  // Fallback al calcolo dal pool domande quando 0 domande/0 punti registrati ma stand ha basePoints.
+  const computed = await prisma.question.findMany({ where: { standId: attempt.standId, isActive: true }, select: { points: true } })
+    .then((rows) => rows.reduce((s, r) => s + (r.points || attempt.stand.basePoints), 0));
+  const maxTotal = attempt.maxScore > 0 ? attempt.maxScore : (computed || attempt.stand.basePoints);
 
   const newBadges = await prisma.userBadge.findMany({
     where: { userId: session.user.id },
