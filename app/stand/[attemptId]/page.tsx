@@ -4,13 +4,14 @@ import { notFound, redirect } from "next/navigation";
 import { AttemptStatus } from "@/lib/constants";
 import { SiteHeader } from "@/components/site-header";
 import { QuizRunner } from "./quiz";
+import { appPath } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function QuizPage({ params }: { params: Promise<{ attemptId: string }> }) {
   const { attemptId } = await params;
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect(appPath("/login"));
 
   const attempt = await prisma.attempt.findUnique({
     where: { id: attemptId },
@@ -20,8 +21,8 @@ export default async function QuizPage({ params }: { params: Promise<{ attemptId
     },
   });
   if (!attempt) notFound();
-  if (attempt.userId !== session.user.id) redirect("/app");
-  if (attempt.status === AttemptStatus.COMPLETED) redirect(`/stand/${attempt.id}/summary`);
+  if (attempt.userId !== session.user.id) redirect(appPath("/app"));
+  if (attempt.status === AttemptStatus.COMPLETED) redirect(appPath(`/stand/${attempt.id}/summary`));
 
   // Ordine deterministico per attempt (seeded sull'id): shuffle stabile
   const shuffled = stableShuffle(attempt.stand.questions, attempt.id).map((q) => ({

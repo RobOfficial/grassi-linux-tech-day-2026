@@ -2,23 +2,24 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/lib/constants";
 import { redirect } from "next/navigation";
+import { appPath } from "@/lib/utils";
 
 export async function requireUser() {
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect(appPath("/login"));
   return session.user;
 }
 
 export async function requireStudent() {
   const user = await requireUser();
-  if (user.role === Role.ADMIN) redirect("/admin");
-  if (!user.registrationCompleted) redirect("/onboarding");
+  if (user.role === Role.ADMIN) redirect(appPath("/admin"));
+  if (!user.registrationCompleted) redirect(appPath("/onboarding"));
   return user;
 }
 
 export async function requireAdmin() {
   const user = await requireUser();
-  if (user.role !== Role.ADMIN) redirect("/app");
+  if (user.role !== Role.ADMIN) redirect(appPath("/app"));
   return user;
 }
 

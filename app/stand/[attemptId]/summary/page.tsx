@@ -3,13 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import Link from "next/link";
+import { appPath } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function SummaryPage({ params }: { params: Promise<{ attemptId: string }> }) {
   const { attemptId } = await params;
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect(appPath("/login"));
 
   const attempt = await prisma.attempt.findUnique({
     where: { id: attemptId },

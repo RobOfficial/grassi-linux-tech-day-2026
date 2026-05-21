@@ -6,7 +6,7 @@ import { appPath } from "@/lib/utils";
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ from?: string; error?: string }> }) {
   const sp = await searchParams;
   const session = await auth();
-  if (session?.user) redirect("/app");
+  if (session?.user) redirect(appPath("/app"));
 
   const from = sp.from || "/app";
   const error = sp.error;
