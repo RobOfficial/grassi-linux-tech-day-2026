@@ -1,6 +1,7 @@
 import { SiteHeader } from "@/components/site-header";
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { appPath } from "@/lib/utils";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ from?: string; error?: string }> }) {
   const sp = await searchParams;
@@ -31,7 +32,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             className="mt-6"
             action={async () => {
               "use server";
-              await signIn("google", { redirectTo: from });
+              await signIn("google", { redirectTo: appPath(from) });
             }}
           >
             <button type="submit" className="btn w-full">▶ continua con google</button>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { Role } from "@/lib/constants";
+import { appPath } from "@/lib/utils";
 
 export async function SiteHeader() {
   const session = await auth();
@@ -25,7 +26,7 @@ export async function SiteHeader() {
               <form
                 action={async () => {
                   "use server";
-                  await signOut({ redirectTo: "/" });
+                  await signOut({ redirectTo: appPath("/") });
                 }}
               >
                 <button type="submit" className="btn-danger text-xs px-2 py-1">logout</button>

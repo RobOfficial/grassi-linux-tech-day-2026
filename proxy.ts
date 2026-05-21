@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 
 const PROTECTED = ["/app", "/stand", "/scan", "/onboarding", "/admin"];
 const ADMIN_ONLY = ["/admin"];
+const NEXT_BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "/quest";
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -16,7 +17,9 @@ export async function proxy(req: NextRequest) {
 
   if (!sessionCookie) {
     const url = req.nextUrl.clone();
-    url.pathname = "/login";
+    // Next strippa il basePath da nextUrl.pathname ma NON lo riapplica a redirect:
+    // serve prefissare manualmente o l'utente finisce su https://host/login (404).
+    url.pathname = `${NEXT_BASE_PATH}/login`;
     url.searchParams.set("from", pathname);
     return NextResponse.redirect(url);
   }
