@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { QrTile } from "@/components/qr-tile";
 import Link from "next/link";
+import { appPath } from "@/lib/utils";
 
 export default async function StandQrPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,7 +20,7 @@ export default async function StandQrPage({ params }: { params: Promise<{ id: st
         <QrTile url={url} size={360} />
       </div>
       <div className="mt-4 flex gap-2">
-        <a className="btn" href={`/api/qr/${s.id}?download=1`} target="_blank" rel="noreferrer">▶ download PNG</a>
+        <a className="btn" href={appPath(`/api/qr/${s.id}?download=1`)} target="_blank" rel="noreferrer">▶ download PNG</a>
         <Link className="btn-accent" href="/admin/qr">indietro</Link>
       </div>
     </div>
