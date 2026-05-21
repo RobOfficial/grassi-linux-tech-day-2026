@@ -4,18 +4,17 @@ import { SiteHeader } from "@/components/site-header";
 import { OnboardingForm } from "./form";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/lib/constants";
-import { appPath } from "@/lib/utils";
 
 export default async function OnboardingPage() {
   const session = await auth();
-  if (!session?.user) redirect(appPath("/login"));
-  if (session.user.role === Role.ADMIN) redirect(appPath("/admin"));
+  if (!session?.user) redirect("/login");
+  if (session.user.role === Role.ADMIN) redirect("/admin");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { name: true, surname: true, className: true, registrationCompletedAt: true },
   });
-  if (user?.registrationCompletedAt) redirect(appPath("/app"));
+  if (user?.registrationCompletedAt) redirect("/app");
 
   return (
     <>

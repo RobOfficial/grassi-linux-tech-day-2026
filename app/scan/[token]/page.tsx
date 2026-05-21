@@ -4,14 +4,13 @@ import { redirect } from "next/navigation";
 import { AttemptStatus, Role } from "@/lib/constants";
 import { SiteHeader } from "@/components/site-header";
 import Link from "next/link";
-import { appPath } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function ScanPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const session = await auth();
-  if (!session?.user) redirect(appPath(`/login?from=/scan/${encodeURIComponent(token)}`));
+  if (!session?.user) redirect(`/login?from=/scan/${encodeURIComponent(token)}`);
   if (session.user.role === Role.ADMIN) {
     return (
       <ScanShell title="Sei admin">
@@ -21,7 +20,7 @@ export default async function ScanPage({ params }: { params: Promise<{ token: st
     );
   }
   if (!session.user.registrationCompleted) {
-    redirect(appPath(`/onboarding?from=/scan/${encodeURIComponent(token)}`));
+    redirect(`/onboarding?from=/scan/${encodeURIComponent(token)}`);
   }
 
   const stand = await prisma.stand.findUnique({
@@ -79,7 +78,7 @@ export default async function ScanPage({ params }: { params: Promise<{ token: st
     });
     const { evaluateBadges } = await import("@/lib/badges");
     await evaluateBadges(session.user.id);
-    redirect(appPath(`/stand/${attempt.id}/summary`));
+    redirect(`/stand/${attempt.id}/summary`);
   }
 
   // Crea o riusa attempt IN_PROGRESS e vai al quiz
@@ -88,7 +87,7 @@ export default async function ScanPage({ params }: { params: Promise<{ token: st
     update: {},
     create: { userId: session.user.id, standId: stand.id, status: AttemptStatus.IN_PROGRESS, maxScore: 0 },
   });
-  redirect(appPath(`/stand/${attempt.id}`));
+  redirect(`/stand/${attempt.id}`);
 }
 
 function ScanShell({ title, children }: { title: string; children: React.ReactNode }) {
